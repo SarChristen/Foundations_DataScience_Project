@@ -1,0 +1,357 @@
+---
+title: "Christensen Final Project"
+output:
+  pdf_document: default
+date: "2025-10-19"
+---
+
+```{r}
+#read count csv file into Rstudio and get the dimensions
+
+setwd('/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project')
+
+counts <- read.csv(file = "counts.csv", row.names = 1)
+
+head(counts)
+
+dim(counts)
+
+```
+
+```{r}
+#read meta.data csv file into Rstudio and get the dimensions
+
+meta.data <- read.csv("meta_data.csv", row.names = 1)
+
+head(meta.data)
+
+dim(meta.data)
+```
+```{r}
+# selecting gene in row 173. (ENSG00000007202.15)
+
+#transposed or else would "summarize" each value instead of calculating summary statistics.
+Gene_A <- t(counts[173,])
+
+summary(Gene_A)
+
+#standard deviation not included in summary()
+print(paste("StDev:", sd(Gene_A)))
+
+```
+```{r}
+head(Gene_A)
+```
+
+
+```{r}
+library(ggplot2)
+
+
+Gene_Expression_Histogram <- ggplot(Gene_A, aes(x = ENSG00000007202.15)) +
+  geom_histogram(bins = 50,
+                 fill = "lavender",
+                 color = "purple") +
+  labs(x = "Expression Values",
+       y = "Frequency",
+       title = "Histogram of Gene ENSG00000007202.15")
+
+print(Gene_Expression_Histogram)
+
+#from Assignment 2, output to local device as png
+#png("/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/Histogram.png", width = 2000, height = 1500, res = 300)
+#print(Gene_Expression_Histogram)
+#dev.off
+
+
+```
+
+```{r}
+#selecting gene in row 19. (ENSG00000001631.16)
+
+#transposed or else would "summarize" each value instead of calculating summary statistics.
+Gene_B <- t(counts[19,])
+
+summary(Gene_B)
+
+#standard deviation not included in summary()
+print(paste("StDev:", sd(Gene_B)))
+
+head(Gene_B) 
+```
+
+```{r}
+#scatterplot comparing 2 genes
+#is there an overall trend? (https://www.geeksforgeeks.org/r-language/joining-points-on-scatter-plot-using-smooth-lines-in-r/)
+# scatter.smooth(Gene_A,Gene_B, main = "Gene_A vs Gene_B Expression", xlab = "Gene_A Expression Counts", ylab = "Gene_B Expression Counts")
+```
+
+```{r}
+#scatterplot comparing 2 genes
+#color gradient based on point density
+# smoothScatter(Gene_A,Gene_B, main= "Gene_A vs Gene_B Expression", xlab = "Gene_A Expression Counts", ylab = "Gene_B Expression Counts")
+```
+```{r}
+
+GenesAB <- cbind(Gene_A, Gene_B)
+
+head(GenesAB)
+
+GenesAB <- as.data.frame(GenesAB) # needed to be converted into data frame?
+
+class(GenesAB)
+
+GenesAB.lm <- lm(formula = ENSG00000007202.15 ~ ENSG00000001631.16, data = GenesAB) # added fit linear model from Lecture 3 for the fun of it
+
+coeff <- coefficients(GenesAB.lm)
+intercept <- coeff[1]
+slope <- coeff[2]
+
+eq_label <- paste0("y = ",
+                   round(slope, 2), "x + ",
+                   round(intercept, 2))
+
+summary(GenesAB.lm) #see results of regression analysis (https://bookdown.org/ndphillips/YaRrr/linear-regression-with-lm.html). Trying to figure out why the y intercept is so off.
+#according to gemini (https://statisticsbyjim.com/regression/interpret-constant-y-intercept-regression/#:~:text=As%20a%20general%20statistical%20guideline,don't%20have%20that%20data!), the method "lm" predicts when x = 0, which this data never does, which means that would be outside of the range and could be the reason the y-intercept doesn't make sense, but the slope should still have meaning.
+
+library(ggplot2)
+
+Gene_Expression_Scatterplot <- ggplot(GenesAB, aes(x = ENSG00000007202.15, y = ENSG00000001631.16)) +
+  geom_point(shape = 23, 
+             size = 3,
+                 fill = "purple",
+                 color = "lavender") +
+  geom_smooth(method = "lm", se = TRUE, color = "red") + #se = confidence around line
+  labs(x = "ENSG00000007202.15 Expression Counts",
+       y = "ENSG00000001631.16 Expression Counts",
+       title = "Comparison of the Expression Counts of Two Genes") +
+  annotate("text", x = 100000, y = 100, label = eq_label,
+           hjust = 1.1, vjust = -1.1, size = 5, color = "red") +
+  theme_linedraw()
+
+print(Gene_Expression_Scatterplot)
+
+#png("/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/Scatterplot.png", width = 2000, height = 1500, res = 300)
+#print(Gene_Expression_Scatterplot)
+#dev.off
+
+```
+
+
+```{r}
+#making the row names that need to be used to merge the two data frames the exact same (the subjects)
+#syntax help from Gemini 
+  # Standardize df2's row names to match df1's (replace '_' with '.')
+  #rownames(df2) <- gsub(pattern = "_", replacement = ".", x = rownames(df2), fixed = TRUE)
+  # fixed = TRUE (must match exactly)
+rownames(meta.data) <- gsub(pattern = "-", replacement = ".", x = rownames(meta.data), fixed = TRUE)
+print(rownames(meta.data))
+
+#merging using those row names
+#syntax help from Gemini
+  #merged_df_base <- merge(df1, df2, by = 0, all = TRUE)
+  #all = TRUE (add rows if there are rownames that do not match)
+gene_A_metadata <- merge(Gene_A, meta.data, by = 'row.names', all = TRUE)
+
+#Syntax from Lecture 2 to attempt to rename the column to "Subject_ID", but did not change.
+# gene_A_metadata$Row.names <- gsub("Row.names", "Subject_ID", gene_A_metadata$Row.names)
+
+head(gene_A_metadata)
+
+#for capitalizing data in a column
+#https://www.geeksforgeeks.org/r-language/convert-first-letter-of-every-word-to-uppercase-in-r-programming-str_to_title-function/
+
+#for capitalizing a single column name
+#https://www.statology.org/rename-single-column-in-r/
+
+library(stringr)
+
+gene_A_metadata$gender <- str_to_title(gene_A_metadata$gender)
+colnames(gene_A_metadata)[colnames(gene_A_metadata) == 'gender'] <- 'Gender' 
+head(gene_A_metadata)
+
+
+```
+
+```{r}
+
+```
+
+
+
+
+```{r}
+#Violin Plot
+#Biostatsquid video "Violin plots tutorial with ggplot2 in R (part 1)"
+
+library(tidyverse)
+library(RColorBrewer)
+```
+
+
+```{r}
+#Biostatsquid video "Violin plots tutorial with ggplot2 in R (part 1)"
+
+#office hours, keep as integer, at least the continuous variable. Need one variable categorical for the x axis.
+
+Gene_Expression_Violin <- ggplot(gene_A_metadata, aes(x = Gender, y = ENSG00000007202.15, fill = Gender)) +
+  geom_violin() +
+  geom_jitter(color = "maroon", alpha = 0.2) + #add the single point for the N/A gender, but a little messy for the female category.
+  labs(x = "Gender",
+       y = "ENSG00000007202.15 Expression Value",
+       title = "ENSG00000007202.15 Expression vs Gender") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "PRGn")
+
+length(which(is.na(gene_A_metadata$Gender) == TRUE))
+
+print(Gene_Expression_Violin)
+
+#png("/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/Violinplot.png", width = 2000, height = 1500, res = 300)
+#print(Gene_Expression_Violin)
+#dev.off
+  
+```
+
+
+```{r}
+# Second Check-in 3) Heatmap Analysis Lecture 3.
+
+# Load libraries
+library(ComplexHeatmap)
+library(circlize)
+
+# Selecting the first 10 genes from count data
+heatmap_genes <- rownames(counts)[1:10]
+
+print(heatmap_genes)
+
+# Only using the counts for these 10 genes, so need to subset
+counts_heatmap_subset <- counts[heatmap_genes, ]
+heatmap_matrix <- data.matrix(counts_heatmap_subset) # converting df into matrix (is this necessary?) kept getting error that it needed to be a matrix. (https://www.geeksforgeeks.org/r-language/convert-a-data-frame-into-a-numeric-matrix-in-r-programming-data-matrix-function/)
+
+library(stringr)
+
+meta.data$gender <- str_to_title(meta.data$gender)
+
+# Heatmap annotaitons for covariate variable, (previously selected gender). 
+column_ha <- HeatmapAnnotation(
+  Gender = meta.data$gender,
+  col = list(
+    Gender = c(Male = "lavender", Female = "maroon", "NA" = "green")
+  )
+)
+
+# Create heatmap
+Gene_Expression_Heatmap <- Heatmap(
+  counts_heatmap_subset,
+  name = "Counts",
+  top_annotation = column_ha,
+  show_row_names = TRUE,
+  show_column_names = FALSE, # too many columns/samples, too messy
+  cluster_columns = FALSE,
+  cluster_rows = TRUE,
+  column_title = "Samples",
+  row_title = "Genes",
+  heatmap_legend_param = list(title = "Count")
+)
+print(Gene_Expression_Heatmap)
+
+#png("/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/Heatmap.png", width = 2000, height = 1500, res = 300)
+#print(Gene_Expression_Heatmap)
+#dev.off
+```
+
+```{r}
+#varPlot for variability chart. Needs VCA package (https://www.rdocumentation.org/packages/VCA/versions/1.1.1/topics/varPlot)
+#https://www.rdocumentation.org/packages/VCA/versions/1.5.1
+
+#library(VCA)
+
+
+
+#varPlot(form = gene_A_metadata$ENSG00000007202.15 ~ gene_A_metadata$Gender/gene_A_metadata$vital_status, Data = gene_A_metadata, 2)
+
+```
+
+```{r}
+#density plot (https://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html#Diverging%20Lollipop%20Chart)
+
+#converting age in days to years, first create vector and add to the df.
+#age_in_years <- gene_A_metadata$age_at_diagnosis / 365.25
+
+#gene_A_metadata <- cbind(gene_A_metadata, age_in_years)
+
+#head(gene_A_metadata)
+
+#help from gemini to convert age in days to years using mutate instead of creating a vector and adding as a column. this gave error that there was a duplicate column when plotting the density plot.
+
+gene_A_metadata <- mutate(gene_A_metadata, age_in_years = gene_A_metadata$age_at_diagnosis / 365.25)
+
+
+Gene_Expression_Density <- ggplot(gene_A_metadata, aes(x = gene_A_metadata$age_in_years, alpha = 0.5)) +
+       geom_density(aes(x = gene_A_metadata$age_in_years, fill = factor(Gender))) +
+         labs(title = "Density Plot of Age at Diagnosis",
+              x = "Age at Diagnosis (in years)",
+              y = "Density",
+              fill = "Gender")
+
+print(Gene_Expression_Density)
+
+#png("/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/Densityplot.png", width = 2000, height = 1500, res = 300)
+#print(Gene_Expression_Density)
+#dev.off
+
+```
+
+```{r}
+#Table displaying summary statistics for covariate (https://bioinformatics-core-shared-training.github.io/r-intro/week5.html and gemini help with summarizing data by variable using group_by. Originally tried to not use "%>%" but call out df and column with "$", but had errors with using group_by with a character object)
+#limiting decimal points from Lecture 3 when using the linear model and calcuting the coefficients (also, #https://www.geeksforgeeks.org/r-language/format-number-of-decimal-places-in-r/)
+
+library(dplyr)
+
+Summary_table <- gene_A_metadata %>%
+  group_by(Gender) %>%
+  summarize(
+    round(mean(ENSG00000007202.15),2),
+    round(sd(ENSG00000007202.15),2),
+    min(ENSG00000007202.15),
+    max(ENSG00000007202.15))
+
+print(Summary_table)
+
+# From Assignment 3: 1b) Change column names (https://www.geeksforgeeks.org/r-language/change-column-name-of-a-given-dataframe-in-r/)
+
+Summary_table <-setNames(Summary_table, c("Gender", "Average", "Standard Deviation", "Minimum Value", "Maximum Value"))  
+
+head(Summary_table)
+
+#setwd("/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures")
+#write.csv(Summary_table, file="Summary_table.csv")
+
+#making table look nicer (https://rfortherestofus.com/2019/11/how-to-make-beautiful-tables-in-r) gt package (https://gt.rstudio.com/) (https://gt.rstudio.com/articles/gt.html)
+#saving gt_table (https://gt.rstudio.com/reference/gtsave.html)
+library(gt)
+
+gt_Gene_table <- gt(Summary_table)
+
+latex_Gene_summary <- as_latex(gt_Gene_table) #https://gt.rstudio.com/reference/as_latex.html
+
+print(latex_Gene_summary, file = "/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/latex_Gene_summary.tex")
+
+#gtsave(gt_Gene_table, "/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/Summary_gt_Table.png", expand = 10)
+
+#(gemini and saving plots as png from previous lecture)
+#library(gridExtra)
+
+#png("/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/Summary_Table.png", width = 2000, height = 1500, res = 300)
+#print(Summary_table)
+#dev.off()
+
+#https://rfortherestofus.com/courses/tables/lessons/export
+#save.image(
+  #Summary_table, 
+ # path = "/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/Summary_Table.png",
+  #webshot = "webshot2")
+```
+
