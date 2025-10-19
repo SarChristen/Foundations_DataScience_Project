@@ -97,7 +97,7 @@ GenesAB <- cbind(Gene_A, Gene_B)
 
 head(GenesAB)
 
-GenesAB <- as.data.frame(GenesAB) # needed to be converted into data frame?
+GenesAB <- as.data.frame(GenesAB) # needed to be converted into data frame? (https://www.geeksforgeeks.org/r-language/convert-matrix-to-dataframe-in-r/)
 
 class(GenesAB)
 
@@ -126,7 +126,7 @@ Gene_Expression_Scatterplot <- ggplot(GenesAB, aes(x = ENSG00000007202.15, y = E
        y = "ENSG00000001631.16 Expression Counts",
        title = "Comparison of the Expression Counts of Two Genes") +
   annotate("text", x = 100000, y = 100, label = eq_label,
-           hjust = 1.1, vjust = -1.1, size = 5, color = "red") +
+           hjust = 1.1, vjust = -1.1, size = 5, color = "red") + # what do hjust and vjust do? defines location of text on plot #(https://www.geeksforgeeks.org/r-language/what-do-hjust-and-vjust-do-when-making-a-plot-using-ggplot/)
   theme_linedraw()
 
 print(Gene_Expression_Scatterplot)
@@ -134,6 +134,9 @@ print(Gene_Expression_Scatterplot)
 #png("/Users/sarahchristensen/Desktop/HSE.711_Foundations_DataScience/Final_Project/Figures/Scatterplot.png", width = 2000, height = 1500, res = 300)
 #print(Gene_Expression_Scatterplot)
 #dev.off
+
+#info for adding regression line to ggplot2 plot (https://www.geeksforgeeks.org/r-language/add-regression-line-to-ggplot2-plot-in-r/)
+#also (https://www.statology.org/add-regression-equation-to-plot-in-r/)
 
 ```
 
